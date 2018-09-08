@@ -1,8 +1,9 @@
 #!/bin/bash
 
-pushd "$(dirname "$0")" > /dev/null
+cd "$(dirname "$0")"
 LINK="https://github.com/cms-dev/cms/releases/download/v1.3.2/v1.3.2.tar.gz"
 ARCHIVE="v1.3.2.tar.gz"
+WARNING="Run ./install.sh patch if you are using Ubuntu 18.04 or higher"
 
 case "$1" in
     apt)
@@ -19,7 +20,12 @@ case "$1" in
     ;;
     
     wget)
-        wget -O "$ARCHIVE" "$LINK" && tar xf "$ARCHIVE"
+        (
+            test -f "$ARCHIVE" &&
+            echo "$ARCHIVE has been downloaded already" ||
+            wget -O "$ARCHIVE" "$LINK"
+        ) &&
+        tar xf "$ARCHIVE"
     ;;
     
     unwget)
@@ -29,7 +35,11 @@ case "$1" in
     prerequisites)
         (
             cd cms/ &&
-            yes | sudo ./prerequisites.py install
+            yes | sudo ./prerequisites.py install &&
+            (
+                groups | grep cmsuser ||
+                echo "Please logout and login again"
+            )
         )
     ;;
     
@@ -73,9 +83,9 @@ case "$1" in
     
     unsetup)
         (
-            sudo rm -rf /var/local/*/cms/
-            sudo rm -rf /usr/local/include/cms/
-            sudo rm -rf /usr/local/share/cms/
+            source /usr/local/lib/cms/bin/activate &&
+            yes | pip uninstall cms &&
+            deactivate
         )
     ;;
     
@@ -92,6 +102,44 @@ case "$1" in
         sudo su --login postgres -c "dropdb cmsdb"
         sudo su --login postgres -c "dropuser cmsuser"
     ;;
+    
+    install)
+        ./install.sh apt &&
+        ./install.sh wget &&
+        (
+            lsb_release -a | grep "18.04" &&
+            ./install.sh patch ||
+            echo "$WARNING"
+        ) &&
+        ./install.sh prerequisites &&
+        ./install.sh virtualenv &&
+        ./install.sh setup &&
+        ./install.sh postgres &&
+        (
+            groups | grep cmsuser ||
+            echo "Please logout and login again"
+        )
+        echo "Installed successfully"
+    ;;
+    
+    uninstall)
+        ./install.sh unpostgres &&
+        ./install.sh unsetup &&
+        ./install.sh unvirtualenv &&
+        ./install.sh unprerequisites &&
+        ./install.sh unwget &&
+        echo "Uninstalled successfully"
+    ;;
+    
+    help)
+        echo "A script to install CMS 1.3.2 quickly"
+        echo ""
+        echo "Install: ./install.sh install"
+        echo "Uninstall: ./install.sh uninstall"
+    ;;
+    
+    *)
+        echo "Invalid command, please type ./install help"
+    ;;
 esac
 
-popd > /dev/null
