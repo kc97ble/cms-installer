@@ -6,13 +6,7 @@ A script to install [CMS](https://github.com/cms-dev/cms) [1.3.2](https://cms.re
 
 ```
 chmod a+x install.sh
-./install.sh apt
-./install.sh wget
-./install.sh prerequisites
-./install.sh virtualenv
-./install.sh patch # if you are using Ubuntu 18.04
-./install.sh setup
-./install.sh postgres
+./install install
 ```
 
 Now CMS is installed.
